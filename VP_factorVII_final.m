@@ -45,7 +45,7 @@ STD_dsg_range = [max(0.95 * STD_dsg,STD_dsg - 0.5),...
                         min(STD_dsg + 0.5, 1.05 * STD_dsg)];
 
 % Hyperparameters for STD pair matching
-sigma_lev = 0.275; 
+sigma_lev = 0.25; %0.26; %0.25; %0.275; 
 sigma_dsg = 0.125; 
 
 N_vp = 1e4;
@@ -99,17 +99,21 @@ sgtitle(sprintf('Factor %s Data', factor), 'fontsize',20)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Kernel density parameters
 fac_range = {[50, 160], [60, 160], [75, 190]}; % range allowed for factor values
-bw = [0.4, 0.50, 0.55]; % bandwidth values for noOC, lev, dsg
+bw = [0.45, 0.5, 0.55]; %[0.4, 0.5, 0.5]; %[0.4, 0.50, 0.55]; % bandwidth values for noOC, lev, dsg
 kernels = {'normal', 'normal', 'normal'}; % kernels for noOC, lev, dsg
 
 % weights for data
 weight_noOC = ones(size(F_noOC));
-p = 0.2; 
+p = 0.15; %0.2; 
 for ii = 1:length(F_noOC)
     noOC = F_noOC(ii);
     diff_mean = abs(noOC - mean(F_noOC));
     if diff_mean < p * mean(F_noOC) % weight values within p% of the mean
         weight_noOC(ii) = 1.5;
+    end
+
+    if and(noOC > 113, noOC < 135)
+        weight_noOC(ii) = 1.2;
     end
 
     if noOC > 135 
@@ -121,17 +125,23 @@ weight_lev = ones(size(F_lev));
 p = 0.15;
 for ii = 1:length(F_lev)
     lev = F_lev(ii);
-    diff_mean = abs(lev - mean(F_lev));
-    if diff_mean < p * mean(F_lev) % weight values within p% of the mean
-        if diff_mean < 0.1 * mean(F_lev)
-            weight_lev(ii) = 2;
-        else
-            weight_lev(ii) = 1.5;%2;
-        end
+
+    if and(lev > 100, lev < 128)
+        weight_lev(ii) = 1.5; %2.0;
     end
 
+%     diff_mean = abs(lev - mean(F_lev));
+%     if diff_mean < p * mean(F_lev) % weight values within p% of the mean
+%         if diff_mean < 0.1 * mean(F_lev)
+%             weight_lev(ii) = 2.0; %1.75;
+%         else
+%             weight_lev(ii) = 1.5; %1.5;%2;
+%         end
+%     end
+    
+
     if lev < 70
-        weight_lev(ii) = 0.7;
+        weight_lev(ii) = 0.75; %0.5;
     end
 end
 
@@ -145,7 +155,7 @@ for ii = 1:length(F_dsg)
     end
 
     if dsg > 160 
-        weight_dsg(ii) = 0.85; % decrease weight of greater than 160
+        weight_dsg(ii) = 1.0; %0.95; %0.85; % decrease weight of greater than 160
     end
 
     if dsg < 90
@@ -630,3 +640,55 @@ legend('Lev', 'Dsg')
 ylim(yrange)
 set(gca,'fontsize',18)
 hold off
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% xqNoOC, xqLev, xqDsg
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+figure(6)
+wbin = 0.05;
+clf;
+hold on
+histogram(xqNoOC,...
+            'BinWidth', wbin, 'FaceColor', c_noOC)
+histogram(xqLev,...
+            'BinWidth', wbin, 'FaceColor',c_lev)
+histogram(xqDsg,...
+            'BinWidth', wbin, 'FaceColor', c_dsg)
+xlabel('p')
+ylabel('count')
+legend('no oc', 'lev', 'dsg')
+title(sprintf('Factor %s', factor))
+set(gca,'fontsize',18)
+hold off
+
+figure(14)
+wbin = 0.05;
+clf;
+subplot(1,2,1)
+hold on
+histogram(xqNoOC,...
+            'BinWidth', wbin, 'FaceColor', c_noOC)
+histogram(xqLev,...
+            'BinWidth', wbin, 'FaceColor',c_lev)
+xlabel('p')
+ylabel('count')
+legend('no oc', 'lev')
+
+set(gca,'fontsize',18)
+hold off
+
+subplot(1,2,2)
+hold on
+histogram(xqNoOC,...
+            'BinWidth', wbin, 'FaceColor', c_noOC)
+histogram(xqDsg,...
+            'BinWidth', wbin, 'FaceColor',c_dsg)
+xlabel('p')
+ylabel('count')
+legend('no oc', 'dsg')
+
+set(gca,'fontsize',18)
+hold off
+
+
+sgtitle(sprintf('Factor %s', factor), 'fontsize', 20)

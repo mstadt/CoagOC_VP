@@ -44,13 +44,13 @@ STD_dsg  = 10;
 STD_dsg_range = [max(0.95 * STD_dsg,STD_dsg - 0.5),...
                         min(STD_dsg + 0.5, 1.05 * STD_dsg)];
 
-% Hyperparameters for STD
+% Hyperparameters for STD pair matching
 sigma_lev = 0.275; 
 sigma_dsg = 0.125; 
 
 N_vp = 1e4;
 
-MAX_TRIALS = 5; %10; %25;
+MAX_TRIALS = 25;
 
 % set random seed
 rng(25)
@@ -99,7 +99,7 @@ sgtitle(sprintf('Factor %s Data', factor), 'fontsize',20)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Kernel density parameters
 fac_range = {[50, 160], [60, 160], [75, 190]}; % range allowed for factor values
-bw = [0.4, 0.50, 0.55]; % bandwidth values for noOC, lev, dsg
+bw = [0.4, 0.5, 0.5]; %[0.4, 0.50, 0.55]; % bandwidth values for noOC, lev, dsg
 kernels = {'normal', 'normal', 'normal'}; % kernels for noOC, lev, dsg
 
 % weights for data
@@ -121,17 +121,22 @@ weight_lev = ones(size(F_lev));
 p = 0.15;
 for ii = 1:length(F_lev)
     lev = F_lev(ii);
+
+    if and(lev > 110, lev < 128)
+        weight_lev(ii) = 2.0;
+    end
     diff_mean = abs(lev - mean(F_lev));
     if diff_mean < p * mean(F_lev) % weight values within p% of the mean
         if diff_mean < 0.1 * mean(F_lev)
-            weight_lev(ii) = 2;
+            weight_lev(ii) = 2.0; %1.75;
         else
-            weight_lev(ii) = 1.5;%2;
+            weight_lev(ii) = 1.5; %1.5;%2;
         end
     end
+    
 
     if lev < 70
-        weight_lev(ii) = 0.7;
+        weight_lev(ii) = 0.5;
     end
 end
 
@@ -282,14 +287,14 @@ xlabel(sprintf('Factor %s after Dsg', factor))
 set(gca, 'fontsize', 18)
 sgtitle('Kernel Density Estimates', 'fontsize', 20)
 
+
+
 %% Sample VPs
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Objective: find NoOC, Lev, and Dsg samples that within tolerance of 
 %    mean difference and std difference
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-OBJ_mean = 0; % Obj: samples are within tolerance of mean difference
-OBJ_std = 0: % Obj: samples are within tolerance of std difference
+OBJ_mean = 0;
 OBJ = 0; % Obj: both OBJ_mean and OBJ_std are met
 
 NUM_TRIALS = 0;
@@ -299,7 +304,7 @@ fprintf('start algorithm \n')
 % Figure for plotting MEAN and STD differences
 figure(4);
 clf;
-subplot(1,2,1)
+subplot(2,2,1)
 hold on
 yline(MEAN_lev_range(1), 'color', 'black', 'linewidth', 2, 'linestyle', '--', ...
                         'HandleVisibility', 'off')
@@ -309,7 +314,7 @@ yline(MEAN_lev_range(2), 'color', 'black', 'linewidth', 2, 'linestyle', '--',...
                             'HandleVisibility', 'off')
 xlabel('trial')
 ylabel('mean difference (Lev - NoOC)')
-title('MEAN')
+title('MEAN difference')
 set(gca, 'fontsize', 18)
 
 subplot(2,2,2)
@@ -322,7 +327,7 @@ yline(MEAN_dsg_range(2), 'color', 'black', 'linewidth', 2, 'linestyle', '--',...
                             'HandleVisibility', 'off')
 xlabel('trial')
 ylabel('mean difference (Dsg - NoOC)')
-title('MEAN')
+title('MEAN difference')
 set(gca, 'fontsize', 18)
 
 subplot(2,2,3)
@@ -332,7 +337,7 @@ yline(STD_lev, 'color', 'black', 'linewidth', 2, 'linestyle', '-')
 yline(STD_lev_range(2), 'color', 'black', 'linewidth', 2, 'linestyle', '--')
 xlabel('trial')
 ylabel('std difference (Lev - NoOC)')
-title('STD')
+title('STD difference')
 set(gca, 'fontsize', 18)
 
 subplot(2,2,4)
@@ -342,7 +347,7 @@ yline(STD_dsg, 'color', 'black', 'linewidth', 2, 'linestyle', '-')
 yline(STD_dsg_range(2), 'color', 'black', 'linewidth', 2, 'linestyle', '--')
 xlabel('trial')
 ylabel('STD difference (Dsg - NoOC)')
-title('STD')
+title('STD difference')
 set(gca, 'fontsize', 18)
 
 while ~OBJ
@@ -404,20 +409,113 @@ while ~OBJ
     end % for ii
 
     % Add random noise to xqNoOC for xqDsg
-    DELTA_dsg = sigma_dsg * randn(size(xqNoOC));
+    DELTA_dsg = sigma_dsg * randn(size(xqNoOC)); % random noise (normal dist)
+    xqDsg = xqNoOC + DELTA_dsg;
 
+    % Resample xqDsg that are out of range
+    inds = find(xqDsg > max(pi) | xqDsg < min(pi)); % out of range indices
+    for ii = 1:length(inds)
+        ind = inds(ii);
+        xqNoOC_val = xqNoOC(ind);
+
+        % Redraw from truncated probability distribution
+        pd = makedist('Normal', 'mu', 0, 'sigma', sigma_dsg); % normal distribution
+        
+        max_inc = max(pi) - xqNoOC_val; % maximum increase
+        max_dec = min(pi) - xqNoOC_val; % maximum decrease
+        t = truncate(pd, max_dec, max_inc); % truncate distribution
+
+        DELTA_new = random(t,1,1);% get new noise value
+        xqDsg_val_new = xqNoOC_val + DELTA_new;
+
+        if or(xqDsg_val_new > max(pi), xqDsg_val_new < min(pi))
+            fprintf('xqdsg: %0.2f',xqDsg_val_new)
+            error('xqdsg out of range!')
+        end
+
+        DELTA_dsg(ind) = DELTA_new;
+        xqDsg(ind) = xqDsg_val_new;
+    end % for ii
+
+    % Interpolate LEV and DSG values from corresponding icdf
+    samplesLev = interp1(pi,xiLev,xqLev);
+    samplesDsg = interp1(pi,xiDsg,xqDsg);
+
+    % Compute mean and std difference
+    diff_lev = samplesLev - samplesNoOC;
+    mean_diff_lev = mean(diff_lev);
+    std_diff_lev = std(diff_lev);
+
+    diff_dsg = samplesDsg - samplesNoOC;
+    mean_diff_dsg = mean(diff_dsg);
+    std_diff_dsg = std(diff_dsg);
+
+
+    % Plot mean and std difference for trial
+    figure(4);
+    subplot(2,2,1)
+    hold on
+    plot(NUM_TRIALS,mean_diff_lev, 'linestyle', 'none', 'marker', 'square',...
+                            'markersize', 10,...
+                            'MarkerFaceColor', c_lev, 'color', c_lev)
+
+    subplot(2,2,2)
+    hold on
+    plot(NUM_TRIALS,mean_diff_dsg, 'linestyle', 'none', 'marker', 'square',...
+                            'markersize', 10,...
+                            'MarkerFaceColor', c_dsg, 'color', c_dsg)
+    subplot(2,2,3)
+    hold on
+    plot(NUM_TRIALS, std_diff_lev, 'linestyle','none','marker','o',...
+                    'markersize', 10,...
+                    'MarkerFaceColor', c_lev, 'color', c_lev)
+    subplot(2,2,4)
+    hold on
+    plot(NUM_TRIALS, std_diff_dsg, 'linestyle', 'none', 'marker', 'o',...
+                    'markersize', 10,...
+                    'markerfacecolor', c_dsg, 'color', c_dsg)
     
+    % Check objectives
+    OBJ_mean = 0; OBJ_std = 0;
 
+    % MEAN difference objective
+    OBJ_lev = 0; OBJ_dsg = 0;
+    if and(MEAN_lev_range(1) < mean_diff_lev , mean_diff_lev < MEAN_lev_range(2))
+        OBJ_lev = 1;
+    end
+    if and(MEAN_dsg_range(1) < mean_diff_dsg , mean_diff_dsg < MEAN_dsg_range(2))
+        OBJ_dsg = 1;
+    end
 
+    if and(OBJ_lev, OBJ_dsg)
+        OBJ_mean = 1;
+    end
+
+    % STD difference objective
+    OBJ_lev = 0; OBJ_dsg = 0;
+    if and(STD_lev_range(1) < std_diff_lev, std_diff_lev < STD_lev_range(2))
+        OBJ_lev = 1;
+    end
+    if and(STD_dsg_range(1) < std_diff_dsg, std_diff_dsg < STD_dsg_range(2))
+        OBJ_dsg = 1;
+    end
+    if and(OBJ_lev, OBJ_dsg)
+        OBJ_std = 1;
+    end
+
+    % OBJ
+    if and(OBJ_mean, OBJ_std)
+        OBJ = 1;
+        fprintf('objective reached in %i trials \n', NUM_TRIALS)
+        fprintf('Factor %s samples complete! \n', factor)
+    end
 end % ~OBJ
 
 
 
 
-
-
 %% Plot results
-
+fprintf('plotting results \n')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plot samples on kernel density function %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

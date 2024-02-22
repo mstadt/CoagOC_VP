@@ -642,3 +642,56 @@ ylim(yrange)
 set(gca,'fontsize',18)
 hold off
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% xqNoOC, xqLev, xqDsg
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+figure(6)
+wbin = 0.05;
+clf;
+hold on
+histogram(xqNoOC,...
+            'BinWidth', wbin, 'FaceColor', c_noOC)
+histogram(xqLev,...
+            'BinWidth', wbin, 'FaceColor',c_lev)
+histogram(xqDsg,...
+            'BinWidth', wbin, 'FaceColor', c_dsg)
+xlabel('p')
+ylabel('count')
+legend('no oc', 'lev', 'dsg')
+title(sprintf('Factor %s', factor))
+set(gca,'fontsize',18)
+hold off
+
+figure(14)
+wbin = 0.05;
+clf;
+subplot(1,2,1)
+hold on
+histogram(xqNoOC,...
+            'BinWidth', wbin, 'FaceColor', c_noOC)
+histogram(xqLev,...
+            'BinWidth', wbin, 'FaceColor',c_lev)
+xlabel('p')
+ylabel('count')
+legend('no oc', 'lev')
+
+set(gca,'fontsize',18)
+hold off
+
+subplot(1,2,2)
+hold on
+histogram(xqNoOC,...
+            'BinWidth', wbin, 'FaceColor', c_noOC)
+histogram(xqDsg,...
+            'BinWidth', wbin, 'FaceColor',c_dsg)
+xlabel('p')
+ylabel('count')
+legend('no oc', 'dsg')
+
+set(gca,'fontsize',18)
+hold off
+
+
+sgtitle(sprintf('Factor %s', factor), 'fontsize', 20)
+
