@@ -3,3 +3,6 @@ oldversion/*
 figs/*
 *.asv
 *.asv
+fX_trials/VP_orig.mat
+*.asv
+*.asv

@@ -46,8 +46,8 @@ STD_dsg_range = [max(0.95 * STD_dsg,STD_dsg - 0.5),...
                         min(STD_dsg + 0.5, 1.05 * STD_dsg)];
 
 % Hyperparameters for VP pairing
-sigma_lev = 0.25;
-sigma_dsg = 0.2;
+sigma_lev = 0.275; %0.25;
+sigma_dsg = 0.225; %0.25; %0.2;
 
 N_vp = 1e4;
 
@@ -340,7 +340,9 @@ while ~OBJ
     end % while sum(isnan)>0
     
     % Add random noise to xqNoOC for xqLev
-    DELTA_lev = sigma_lev * randn(size(xqNoOC)); % random noise (normal dist)
+    pd = makedist('Normal', 'mu', 0, 'sigma', sigma_lev);
+    t = truncate(pd, -2*sigma_lev, 2*sigma_lev);
+    DELTA_lev = random(t, 1, length(xqNoOC));
     xqLev = xqNoOC + DELTA_lev; % add noise to xqNoOC
 
     % Resample xqLev that are out of range
@@ -352,8 +354,8 @@ while ~OBJ
         % Redraw from truncated probability distribution
         pd = makedist('Normal', 'mu', 0, 'sigma', sigma_lev); % normal distribution
         % truncate distribution
-        max_inc = max(pi) - xqNoOC_val; % maximum increase
-        max_dec = min(pi) - xqNoOC_val; % maximum decrease
+        max_inc = min(max(pi) - xqNoOC_val, 2*sigma_lev); % maximum increase
+        max_dec = max(min(pi) - xqNoOC_val, -2*sigma_lev); % maximum decrease
         t = truncate(pd, max_dec, max_inc);
 
         DELTA_new = random(t, 1,1); % get new noise value
@@ -369,7 +371,10 @@ while ~OBJ
     end % for ii
 
     % Add random noise to xqNoOC for xqDsg
-    DELTA_dsg = sigma_dsg * randn(size(xqNoOC)); % random noise (normal dist)
+    pd = makedist('Normal', 'mu', 0,'sigma',sigma_dsg);
+    t = truncate(pd, -2*sigma_dsg, 2*sigma_dsg);
+    DELTA_dsg = random(t,1,length(xqNoOC));
+    %DELTA_dsg = sigma_dsg * randn(size(xqNoOC)); % random noise (normal dist)
     xqDsg = xqNoOC + DELTA_dsg;
 
     % Resample xqDsg that are out of range
@@ -381,8 +386,8 @@ while ~OBJ
         % Redraw from truncated probability distribution
         pd = makedist('Normal', 'mu', 0, 'sigma', sigma_dsg); % normal distribution
         
-        max_inc = max(pi) - xqNoOC_val; % maximum increase
-        max_dec = min(pi) - xqNoOC_val; % maximum decrease
+        max_inc = min(max(pi) - xqNoOC_val, 2*sigma_dsg); % maximum increase
+        max_dec = max(min(pi) - xqNoOC_val, -2*sigma_dsg); % maximum decrease
         t = truncate(pd, max_dec, max_inc); % truncate distribution
 
         DELTA_new = random(t,1,1);% get new noise value
