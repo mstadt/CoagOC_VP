@@ -623,3 +623,16 @@ legend('Lev', 'Dsg')
 ylim(yrange)
 set(gca,'fontsize',18)
 hold off
+
+%% save results
+save_res = input('save results? (0/1) ');
+if save_res
+    notes = input('notes for filename: ');
+    fname = strcat('./results/',...
+                        date,...
+                        '_VP_factor_', factor,...
+                        '_notes-', notes,...
+                        '.mat');
+    save(fname)
+    fprintf('results saved to \n %s \n', fname)
+end

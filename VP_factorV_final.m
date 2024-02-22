@@ -666,3 +666,16 @@ hold off
 
 sgtitle(sprintf('Factor %s', factor), 'fontsize', 20)
 
+%% save results
+save_res = input('save results? (0/1) ');
+if save_res
+    notes = input('notes for filename: ');
+    fname = strcat('./results/',...
+                        date,...
+                        '_VP_factor_', factor,...
+                        '_notes-', notes,...
+                        '.mat');
+    save(fname)
+    fprintf('results saved to \n %s \n', fname)
+end
+
