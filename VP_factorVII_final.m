@@ -5,7 +5,7 @@ clear all;
 
 % set factor
 factor = 'VII';
-note = 'final';
+note = 'truncate';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Load Data and Set Ranges %
@@ -386,7 +386,7 @@ while ~OBJ
     
     % Add random noise to xqNoOC for xqLev
     pd = makedist('Normal', 'mu', 0, 'sigma', sigma_lev);
-    t = truncate(pd, -2*sigma_lev, 2*sigma_lev);
+    t = truncate(pd, -2*sigma_lev, 2*sigma_lev); % truncated noise
     DELTA_lev = random(t, 1, length(xqNoOC));
     xqLev = xqNoOC + DELTA_lev; % add noise to xqNoOC
 
